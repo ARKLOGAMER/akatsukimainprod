@@ -1,0 +1,468 @@
+Understood, Abel — here is your **FINAL, COMPLETE, UNIFIED, NO-LOOSE-ENDS PRD**, engineered specifically to **ship the entire Akatsuki Platform (Landing + Events + RSVP + Admin Dashboard)** in **3 hours**.
+
+This is the cleanest, fastest, and most actionable PRD I can produce.
+No extras.
+No heavy modules.
+Only **exactly what is required to ship TODAY**.
+
+Save this PRD as your official build spec.
+
+---
+
+# ⚡ **AKATSUKI SERIES PLATFORM – SUPER-COMPRESSED 3-HOUR SHIP PRD**
+
+**Product Owner:** Abel Sebastian (CBO, Scify Technologies)
+**Stack:** Vite + React + Tailwind + Supabase (remote REST, PostgREST, GoTrue, Storage REST)
+**MVP Surface:** Public Website + RSVP + Admin Dashboard
+
+---
+
+# 1 — PRODUCT SUMMARY (One Line)
+
+A fast, single-page Akatsuki event platform where students can view events, open details, register instantly, and admins can manage RSVPs through a clean dashboard.
+
+---
+
+# 2 — MVP MODULES (No Fat)
+
+### PUBLIC SIDE
+
+1. **Hero Section**
+2. **About Section**
+3. **Event List** (Live / Upcoming / Closed)
+4. **Event Detail Modal** (slide-in panel)
+5. **RSVP Popup Form**
+6. **Live Enrolled Counter**
+
+### ADMIN SIDE
+
+1. **Admin Login (GoTrue)**
+2. **Event Dashboard** (per event)
+3. **Overview Tab**
+4. **Guests Tab**
+5. **Form Builder Tab**
+6. **Event Settings Tab**
+
+That’s it.
+Everything else removed.
+
+---
+
+# 3 — PUBLIC WEBSITE (DETAILED SPEC)
+
+## 3.1 — HERO SECTION
+
+* Large title: **AKATSUKI SERIES**
+* Subtitle: “7-Day Execution Sprints for Next-Gen Innovators.”
+* CTA button: “Join Next Chapter” → scroll to events
+* Live counter:
+
+  * Fetch via: `GET /rest/v1/rsvps?select=count`
+* Background: Dark red Akatsuki theme
+
+---
+
+## 3.2 — ABOUT SECTION
+
+Short paragraphs (3–4 lines):
+
+* Akatsuki = “Dawn”
+* A movement for creators & innovators
+* Mission: close the gap between idea → execution
+
+---
+
+## 3.3 — EVENT LIST (GRID)
+
+Three tabs:
+
+* **LIVE**
+* **UPCOMING**
+* **CLOSED**
+
+Card contents:
+
+* Poster image
+* Title
+* Date
+* Status badge
+* Enrolled count
+* Clickable → opens Event Detail Modal
+
+REST call:
+
+```http
+GET /rest/v1/events?select=*&order=start_date.asc
+```
+
+---
+
+## 3.4 — EVENT DETAIL MODAL (SIDE PANEL)
+
+Contains:
+
+* Big poster
+* Event title
+* Description
+* Date, mode, venue/link
+* Fee
+* “What you’ll become after this chapter”
+* **REGISTER** button → opens RSVP popup
+
+---
+
+## 3.5 — RSVP POPUP FORM
+
+Fields:
+
+* Name
+* Email
+* Phone (WhatsApp)
+* Age
+* College
+* Department
+* Reason
+* Payment screenshot upload
+
+  * Upload via **signed URL from Edge Function**
+
+Submit endpoint:
+
+```http
+POST /rest/v1/rsvps
+```
+
+RLS must allow insert OR route through Edge Function for secure insert.
+
+Post-submit:
+
+* Show success message
+* Update enrolled count
+
+---
+
+# 4 — ADMIN DASHBOARD (DETAILED SPEC)
+
+## 4.1 — ADMIN LOGIN (GoTrue)
+
+Endpoint:
+
+```http
+POST /auth/v1/token
+```
+
+Returns JWT → stored in session and used in `Authorization: Bearer <jwt>`.
+
+---
+
+## 4.2 — EVENT DASHBOARD (PER EVENT)
+
+Route:
+
+```
+/admin/events/:id
+```
+
+HEADER:
+
+* Poster
+* Title
+* Status (LIVE / UPCOMING / CLOSED)
+* Total enrolled
+* Last registered time
+
+Fetch:
+
+```http
+GET /rest/v1/events?id=eq.<ID>&select=*
+GET /rest/v1/rsvps?event_id=eq.<ID>
+```
+
+---
+
+## 4.3 — TAB 1: OVERVIEW
+
+KPIs:
+
+* Total enrolled
+* Registrations today
+* Seats used
+* Registration timeline (simple line chart)
+* Top colleges
+* Latest 10 RSVPs
+
+---
+
+## 4.4 — TAB 2: GUESTS (RSVP LIST)
+
+Table columns:
+
+* Name
+* Email
+* Phone
+* College
+* Department
+* Registered at
+* Status (Applied / Shortlisted / Rejected)
+
+Row actions (via status update endpoint):
+
+```http
+PATCH /rest/v1/rsvps?id=eq.<RSVP_ID>
+```
+
+Filters:
+
+* by status
+* by college
+* by date
+
+Search:
+
+* name
+* phone
+* email
+
+Export CSV:
+
+* Edge Function generates CSV using service_role key
+* Returns signed URL for download
+
+---
+
+## 4.5 — TAB 3: FORM BUILDER
+
+Simple JSON-based builder.
+
+Editable:
+
+* label
+* required
+* type (text, number, textarea, dropdown, file)
+
+Stored at:
+
+```
+form_schema table
+```
+
+---
+
+## 4.6 — TAB 4: EVENT SETTINGS
+
+Admin can update:
+
+* title
+* description
+* poster
+* date
+* mode
+* status
+
+PATCH via PostgREST.
+
+---
+
+# 5 — DATABASE (FINAL SIMPLE SCHEMA)
+
+### events
+
+| Field         | Type      |
+| ------------- | --------- |
+| id            | uuid      |
+| title         | text      |
+| poster_url    | text      |
+| description   | text      |
+| start_date    | date      |
+| end_date      | date      |
+| status        | text      |
+| fee           | int       |
+| seats         | int       |
+| venue_or_link | text      |
+| created_at    | timestamp |
+
+### rsvps
+
+| Field                  | Type                     |
+| ---------------------- | ------------------------ |
+| id                     | uuid                     |
+| event_id               | uuid                     |
+| full_name              | text                     |
+| email                  | text                     |
+| phone                  | text                     |
+| age                    | int                      |
+| college                | text                     |
+| department             | text                     |
+| reason                 | text                     |
+| payment_screenshot_url | text                     |
+| status                 | text (default 'applied') |
+| created_at             | timestamp                |
+
+### form_schema
+
+| Field       | Type  |
+| ----------- | ----- |
+| event_id    | uuid  |
+| schema_json | jsonb |
+
+### admins
+
+| Field | Type |
+| ----- | ---- |
+| id    | uuid |
+| email | text |
+| name  | text |
+
+---
+
+# 6 — REMOTE SUPABASE REST ENDPOINTS (NO SDK)
+
+### Get all events
+
+```
+GET /rest/v1/events?select=*
+```
+
+### Get event detail
+
+```
+GET /rest/v1/events?id=eq.<ID>&select=*
+```
+
+### Insert RSVP
+
+```
+POST /rest/v1/rsvps
+```
+
+### Count RSVPs
+
+```
+GET /rest/v1/rsvps?event_id=eq.<ID>&select=count
+```
+
+### Admin login
+
+```
+POST /auth/v1/token
+```
+
+### Admin fetch guests
+
+```
+GET /rest/v1/rsvps?event_id=eq.<ID>&order=created_at.desc
+```
+
+### Update RSVP status
+
+```
+PATCH /rest/v1/rsvps?id=eq.<RSVP_ID>
+```
+
+### Update event details
+
+```
+PATCH /rest/v1/events?id=eq.<ID>
+```
+
+### Form builder save
+
+```
+PATCH /rest/v1/form_schema?event_id=eq.<ID>
+```
+
+### Export CSV
+
+* Edge Function uses service_role.
+* Client calls:
+
+```
+GET /edge/export?id=<ID>
+```
+
+---
+
+# 7 — RLS (SAFE & SIMPLE)
+
+### Allow public read (events)
+
+```sql
+create policy "public_read_events"
+on events for select to anon using (true);
+```
+
+### Allow public RSVP insert
+
+```sql
+create policy "insert_rsvp_public"
+on rsvps for insert to anon
+with check (
+  full_name is not null
+  and phone is not null
+  and event_id is not null
+);
+```
+
+### Admin-only write
+
+Admins restricted via JWT role check.
+
+---
+
+# 8 — 3-HOUR SHIPPING EXECUTION PLAN (FINAL)
+
+## **HOUR 1** → Landing + Events
+
+* Build hero
+* Build about
+* Fetch events via REST
+* Build event cards
+* Build event modal
+
+## **HOUR 2** → RSVP + Admin Shell
+
+* Build RSVP popup
+* Implement POST RSVP (REST)
+* Build admin login
+* Build admin dashboard shell
+* Fetch overview KPIs
+* Build guests table
+* Build Form Builder
+
+## **HOUR 3** → Final integration + Deploy
+
+* Event Settings tab
+* Export CSV via Edge Function
+* Integrate form builder schema
+* Add live enrolled counter
+* Style polish
+* Deploy to Vercel
+* Final test
+
+**DONE. Platform ready.**
+
+---
+
+# 9 — SUCCESS CHECKPOINTS
+
+In 3 hours, platform is good if:
+
+### PUBLIC:
+
+* Events load
+* Event modal opens
+* RSVP saves
+* Live count updates
+
+### ADMIN:
+
+* Login works
+* Event dashboard loads
+* Guest list shows
+* Filter/search works
+* Form builder saves
+* CSV export works
+
+If all these pass → platform is launchable today.
+
+---

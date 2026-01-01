@@ -1,0 +1,38 @@
+
+5. Gamification 🎮
+Points for attending events
+Leaderboards
+Unlock rewards (discounts, merch)
+Completion badges
+Why: Engagement + retention
+
+17. SEO & Marketing 🔍
+Dynamic meta tags for events
+Sitemap generation
+Schema markup for events
+Social media preview cards
+Why: Organic traffic + discoverability
+
+aeo and geo 
+
+Referral System 💰
+Students get unique referral codes
+Earn discounts/credits for successful referrals
+Track referral analytics in admin dashboard
+Automatic promo code generation for referrers
+Why: Viral growth + reduced marketing costs
+
+4. Advanced Analytics Dashboard 📈
+Revenue tracking (daily/weekly/monthly)
+Conversion funnel (views → registrations → payments)
+Promo code performance metrics
+Geographic distribution of attendees
+Peak registration times
+Why: Data-driven decisions + optimize pricing
+
+. Student Dashboard Enhancements 🎓
+Event history with certificates
+Upcoming events calendar
+Saved/bookmarked events
+Profile completion rewards
+Achievement badges
