@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import SEO from '../components/SEO'
 import Navbar from '../components/Navbar'
 import Hero from '../components/Hero'
 import About from '../components/About'
@@ -51,6 +52,13 @@ function PublicPage() {
 
   return (
     <div className="min-h-screen bg-black">
+      <SEO 
+        title="AKATSUKI Series - Premium Tech Events by Scify Tech | UKF College Kerala"
+        description="Join AKATSUKI Series by Scify Tech - Kerala's premier tech event platform. Exclusive workshops, coding bootcamps, and networking events for UKF College students and tech enthusiasts across Kerala."
+        keywords="scify, ukfcet, ukf college, scify tech, akatsuki, akatsuki series, ukf addon, kerala edstartup, tech events kerala, programming workshops ukf, coding bootcamp kerala, web development courses, AI workshops, machine learning events, tech networking kerala, career development, student events ukfcet, technology conferences kerala, startup events"
+        url="/"
+        type="website"
+      />
       <Navbar />
       <div id="hero">
         <Hero totalEnrolled={totalEnrolled} />

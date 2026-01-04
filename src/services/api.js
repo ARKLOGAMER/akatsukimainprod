@@ -920,5 +920,23 @@ export const api = {
       headers: supabaseConfig.headers
     })
     return res.json()
+  },
+
+  // Admin - Delete Student
+  async deleteStudent(studentId, token) {
+    const res = await fetch(`${BASE_URL}/rest/v1/students?id=eq.${studentId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(token)
+    })
+    return res.ok
+  },
+
+  // Admin - Delete Student Registration (RSVP)
+  async deleteStudentRegistration(rsvpId, token) {
+    const res = await fetch(`${BASE_URL}/rest/v1/rsvps?id=eq.${rsvpId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(token)
+    })
+    return res.ok
   }
 }

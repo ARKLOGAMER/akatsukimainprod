@@ -8,6 +8,9 @@ function GuestsTab({ eventId, token }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [event, setEvent] = useState(null)
   const [sendingEmail, setSendingEmail] = useState({})
+  const [deleteLoading, setDeleteLoading] = useState({})
+  const [selectedRsvps, setSelectedRsvps] = useState([])
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false)
 
   useEffect(() => {
     loadRsvps()
@@ -62,6 +65,75 @@ function GuestsTab({ eventId, token }) {
     } finally {
       setSendingEmail({ ...sendingEmail, [rsvp.id]: false })
     }
+  }
+
+  const handleDeleteRegistration = async (rsvpId, studentName) => {
+    if (!confirm(`Are you sure you want to delete ${studentName}'s registration? This action cannot be undone.`)) {
+      return
+    }
+
+    setDeleteLoading(prev => ({ ...prev, [rsvpId]: true }))
+    
+    try {
+      const success = await api.deleteStudentRegistration(rsvpId, token)
+      if (success) {
+        setRsvps(prev => prev.filter(rsvp => rsvp.id !== rsvpId))
+        alert('Registration deleted successfully')
+      } else {
+        alert('Failed to delete registration')
+      }
+    } catch (error) {
+      console.error('Failed to delete registration:', error)
+      alert('Failed to delete registration')
+    } finally {
+      setDeleteLoading(prev => ({ ...prev, [rsvpId]: false }))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedRsvps.length === 0) {
+      alert('Please select registrations to delete')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to delete ${selectedRsvps.length} selected registrations? This action cannot be undone.`)) {
+      return
+    }
+
+    setBulkDeleteLoading(true)
+    
+    try {
+      const deletePromises = selectedRsvps.map(rsvpId => 
+        api.deleteStudentRegistration(rsvpId, token)
+      )
+      
+      await Promise.all(deletePromises)
+      
+      setRsvps(prev => prev.filter(rsvp => !selectedRsvps.includes(rsvp.id)))
+      setSelectedRsvps([])
+      alert(`${selectedRsvps.length} registrations deleted successfully`)
+    } catch (error) {
+      console.error('Failed to delete registrations:', error)
+      alert('Failed to delete some registrations')
+    } finally {
+      setBulkDeleteLoading(false)
+    }
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedRsvps.length === filteredRsvps.length) {
+      setSelectedRsvps([])
+    } else {
+      setSelectedRsvps(filteredRsvps.map(rsvp => rsvp.id))
+    }
+  }
+
+  const toggleSelectRsvp = (rsvpId) => {
+    setSelectedRsvps(prev => 
+      prev.includes(rsvpId) 
+        ? prev.filter(id => id !== rsvpId)
+        : [...prev, rsvpId]
+    )
   }
 
   const filterRsvps = () => {
@@ -140,12 +212,39 @@ function GuestsTab({ eventId, token }) {
           >
             Export CSV
           </button>
+
+          {selectedRsvps.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteLoading}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {bulkDeleteLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Deleting {selectedRsvps.length}...
+                </>
+              ) : (
+                <>
+                  🗑️ Delete Selected ({selectedRsvps.length})
+                </>
+              )}
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="border-b bg-gray-50">
+                <th className="text-left py-3 px-4">
+                  <input
+                    type="checkbox"
+                    checked={selectedRsvps.length === filteredRsvps.length && filteredRsvps.length > 0}
+                    onChange={toggleSelectAll}
+                    className="rounded"
+                  />
+                </th>
                 <th className="text-left py-3 px-4">Name</th>
                 <th className="text-left py-3 px-4">Email</th>
                 <th className="text-left py-3 px-4">Phone</th>
@@ -158,6 +257,14 @@ function GuestsTab({ eventId, token }) {
             <tbody>
               {filteredRsvps.map(rsvp => (
                 <tr key={rsvp.id} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedRsvps.includes(rsvp.id)}
+                      onChange={() => toggleSelectRsvp(rsvp.id)}
+                      className="rounded"
+                    />
+                  </td>
                   <td className="py-3 px-4">{rsvp.full_name}</td>
                   <td className="py-3 px-4">{rsvp.email}</td>
                   <td className="py-3 px-4">{rsvp.phone}</td>
@@ -215,6 +322,23 @@ function GuestsTab({ eventId, token }) {
                         title="Resend Confirmation Email"
                       >
                         {sendingEmail[rsvp.id] ? '⏳ Sending...' : '📧 Resend Email'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRegistration(rsvp.id, rsvp.full_name)}
+                        disabled={deleteLoading[rsvp.id]}
+                        className="px-3 py-1 bg-red-700 text-white rounded hover:bg-red-800 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                        title="Delete Registration"
+                      >
+                        {deleteLoading[rsvp.id] ? (
+                          <>
+                            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                            Deleting...
+                          </>
+                        ) : (
+                          <>
+                            🗑️ Delete
+                          </>
+                        )}
                       </button>
                     </div>
                   </td>

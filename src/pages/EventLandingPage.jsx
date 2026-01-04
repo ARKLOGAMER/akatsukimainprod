@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import SEO from '../components/SEO'
 import { api } from '../services/api'
 
 function EventLandingPage() {
@@ -238,6 +239,20 @@ function EventLandingPage() {
 
   return (
     <div className="min-h-screen bg-black text-white">
+      {event && (
+        <SEO 
+          title={`${event.title} - AKATSUKI Series by Scify Tech | UKF College Event`}
+          description={event.description || `Join ${event.title} - an exclusive tech event by AKATSUKI Series (Scify Tech). Learn, network, and grow your skills with industry experts. Special event for UKF College students and Kerala tech community.`}
+          keywords={`${event.title}, tech event, workshop, ${event.category || 'technology'}, programming, AKATSUKI, scify tech, ukfcet, ukf college, kerala tech events, ${event.category || 'coding'} workshop kerala`}
+          url={`/event/${event.slug}`}
+          type="article"
+          publishedTime={event.created_at}
+          modifiedTime={event.updated_at}
+          section="Events"
+          tags={[event.category, 'tech', 'workshop', 'event', 'scify', 'ukfcet', 'kerala'].filter(Boolean)}
+          image={event.image_url || '/og-image.jpg'}
+        />
+      )}
       <div className="container mx-auto px-4 py-8">
         <div className="grid md:grid-cols-2 gap-8 items-start">
           {/* Left Side - Event Poster */}

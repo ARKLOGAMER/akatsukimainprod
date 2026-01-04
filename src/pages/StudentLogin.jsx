@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import SEO from '../components/SEO'
 import { api } from '../services/api'
 
 function StudentLogin() {
@@ -58,6 +59,13 @@ function StudentLogin() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center px-4">
+      <SEO 
+        title="Student Login - AKATSUKI Series by Scify Tech | UKF College Portal"
+        description="Access your AKATSUKI Series student dashboard by Scify Tech. Login to view your registered events, track your progress, and manage your profile. Exclusive for UKF College students and Kerala tech enthusiasts."
+        keywords="student login, AKATSUKI dashboard, student portal, event registration, tech events, scify tech, ukfcet login, ukf college portal, kerala student events"
+        url="/student/login"
+        type="website"
+      />
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">
