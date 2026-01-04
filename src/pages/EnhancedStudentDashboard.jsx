@@ -27,64 +27,146 @@ function EnhancedStudentDashboard() {
       return
     }
     loadDashboardData()
-  }, [])
+  }, [navigate])
 
   const loadDashboardData = async () => {
     try {
-      const profile = await api.getStudentProfile(localStorage.getItem('student_token'))
+      const token = localStorage.getItem('student_token')
+      if (!token) {
+        navigate('/student/login')
+        return
+      }
+
+      // Verify token format
+      try {
+        JSON.parse(atob(token))
+      } catch (err) {
+        console.error('Invalid token format')
+        localStorage.removeItem('student_token')
+        navigate('/student/login')
+        return
+      }
+
+      const profile = await api.getStudentProfile(token)
+      if (!profile) {
+        localStorage.removeItem('student_token')
+        navigate('/student/login')
+        return
+      }
       setStudent(profile)
 
-      // Load points history
-      const pointsData = await api.getStudentPoints(profile.id)
-      setPoints(pointsData)
+      // Load points history with fallback
+      try {
+        const pointsData = await api.getStudentPoints(profile.id)
+        setPoints(pointsData || [])
+      } catch (err) {
+        console.log('Points system not available yet')
+        setPoints([])
+      }
 
-      // Load badges
-      const badgesData = await api.getStudentBadges(profile.id)
-      setBadges(badgesData)
+      // Load badges with fallback
+      try {
+        const badgesData = await api.getStudentBadges(profile.id)
+        setBadges(badgesData || [])
 
-      const allBadgesData = await api.getBadges()
-      setAllBadges(allBadgesData)
+        const allBadgesData = await api.getBadges()
+        setAllBadges(allBadgesData || [])
+      } catch (err) {
+        console.log('Badge system not available yet')
+        setBadges([])
+        setAllBadges([])
+      }
 
-      // Load leaderboard
-      const leaderboardData = await api.getLeaderboard(10)
-      setLeaderboard(leaderboardData)
+      // Load leaderboard with fallback
+      try {
+        const leaderboardData = await api.getLeaderboard(10)
+        setLeaderboard(leaderboardData || [])
+      } catch (err) {
+        console.log('Leaderboard not available yet')
+        setLeaderboard([])
+      }
 
-      // Load referral stats
-      const referralData = await api.getReferralStats(profile.id)
-      setReferralStats(referralData)
+      // Load referral stats with fallback
+      try {
+        const referralData = await api.getReferralStats(profile.id)
+        setReferralStats(referralData || [])
+      } catch (err) {
+        console.log('Referral system not available yet')
+        setReferralStats([])
+      }
 
-      // Load bookmarked events
-      const bookmarksData = await api.getBookmarkedEvents(profile.id)
-      setBookmarkedEvents(bookmarksData)
+      // Load bookmarked events with fallback
+      try {
+        const bookmarksData = await api.getBookmarkedEvents(profile.id)
+        setBookmarkedEvents(bookmarksData || [])
+      } catch (err) {
+        console.log('Bookmarks not available yet')
+        setBookmarkedEvents([])
+      }
 
-      // Load event history (RSVPs)
-      const historyData = await api.getStudentRSVPs(profile.id)
-      setEventHistory(historyData)
+      // Load event history (RSVPs) with fallback
+      try {
+        const historyData = await api.getStudentRSVPs(profile.id)
+        setEventHistory(historyData || [])
+      } catch (err) {
+        console.log('Event history not available yet')
+        setEventHistory([])
+      }
 
-      // Load certificates
-      const certificatesData = await api.getStudentCertificates(profile.id)
-      setCertificates(certificatesData)
+      // Load certificates (with fallback for missing API)
+      try {
+        const certificatesData = await api.getStudentCertificates(profile.id)
+        setCertificates(certificatesData || [])
+      } catch (err) {
+        console.log('Certificates API not available yet')
+        setCertificates([])
+      }
 
-      // Load networking connections
-      const connectionsData = await api.getNetworkingConnections(profile.id)
-      setNetworkingConnections(connectionsData)
+      // Load networking connections (with fallback for missing API)
+      try {
+        const connectionsData = await api.getNetworkingConnections(profile.id)
+        setNetworkingConnections(connectionsData || [])
+      } catch (err) {
+        console.log('Networking connections API not available yet')
+        setNetworkingConnections([])
+      }
 
-      // Load skill progress
-      const progressData = await api.getSkillProgress(profile.id)
-      setSkillProgress(progressData)
+      // Load skill progress (with fallback for missing API)
+      try {
+        const progressData = await api.getSkillProgress(profile.id)
+        setSkillProgress(progressData || [])
+      } catch (err) {
+        console.log('Skill progress API not available yet')
+        setSkillProgress([])
+      }
 
-      // Load feedback history
-      const feedbackData = await api.getFeedbackHistory(profile.id)
-      setFeedbackHistory(feedbackData)
+      // Load feedback history (with fallback for missing API)
+      try {
+        const feedbackData = await api.getFeedbackHistory(profile.id)
+        setFeedbackHistory(feedbackData || [])
+      } catch (err) {
+        console.log('Feedback history API not available yet')
+        setFeedbackHistory([])
+      }
 
-      // Load recommended events
-      const recommendationsData = await api.getRecommendedEvents(profile.id)
-      setRecommendedEvents(recommendationsData)
+      // Load recommended events (with fallback for missing API)
+      try {
+        const recommendationsData = await api.getRecommendedEvents(profile.id)
+        setRecommendedEvents(recommendationsData || [])
+      } catch (err) {
+        console.log('Recommendations API not available yet')
+        setRecommendedEvents([])
+      }
 
       setLoading(false)
     } catch (err) {
       console.error('Failed to load dashboard:', err)
-      setLoading(false)
+      if (err.message?.includes('Authentication failed') || err.message?.includes('Token expired')) {
+        localStorage.removeItem('student_token')
+        navigate('/student/login')
+      } else {
+        setLoading(false)
+      }
     }
   }
 

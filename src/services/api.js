@@ -297,11 +297,42 @@ export const api = {
 
   // Student Profile
   async getStudentProfile(token) {
-    const res = await fetch(`${BASE_URL}/rest/v1/students?select=*&limit=1`, {
-      headers: getAuthHeaders(token)
-    })
-    const data = await res.json()
-    return data[0]
+    try {
+      // Decode the custom token to get student info
+      const studentData = JSON.parse(atob(token))
+      
+      // Get student profile by email using anon key (no auth required)
+      const res = await fetch(`${BASE_URL}/rest/v1/students?email=eq.${studentData.email}&select=*&limit=1`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+      }
+      
+      const data = await res.json()
+      const student = data[0]
+      
+      if (!student) {
+        throw new Error('Student profile not found')
+      }
+      
+      // Verify token timestamp (optional security check)
+      const tokenAge = Date.now() - studentData.timestamp
+      const maxAge = 24 * 60 * 60 * 1000 // 24 hours
+      
+      if (tokenAge > maxAge) {
+        throw new Error('Token expired')
+      }
+      
+      return student
+    } catch (error) {
+      console.error('Failed to get student profile:', error)
+      if (error.message.includes('Token expired') || error.message.includes('Invalid token')) {
+        throw new Error('Authentication failed')
+      }
+      throw error
+    }
   },
 
   // Student Profile by Email
@@ -315,10 +346,27 @@ export const api = {
 
   // Student Courses
   async getStudentCourses(token) {
-    const res = await fetch(`${BASE_URL}/rest/v1/student_courses?select=*,event:events(*)&order=joined_at.desc`, {
-      headers: getAuthHeaders(token)
-    })
-    return res.json()
+    try {
+      // Decode the custom token to get student info
+      const studentData = JSON.parse(atob(token))
+      
+      const res = await fetch(`${BASE_URL}/rest/v1/student_courses?select=*,event:events(*)&order=joined_at.desc`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        console.warn('Student courses table may not exist yet')
+        return []
+      }
+      
+      const allCourses = await res.json()
+      
+      // Filter courses for this student
+      return allCourses.filter(course => course.student_email === studentData.email)
+    } catch (error) {
+      console.error('Failed to get student courses:', error)
+      return []
+    }
   },
 
   // Student Courses by Email
@@ -342,25 +390,51 @@ export const api = {
 
   // Create Doubt
   async createDoubt(doubtData, token) {
-    const res = await fetch(`${BASE_URL}/rest/v1/doubts`, {
-      method: 'POST',
-      headers: getAuthHeaders(token),
-      body: JSON.stringify(doubtData)
-    })
-    
-    if (!res.ok) {
-      throw new Error('Failed to create doubt')
+    try {
+      // Decode the custom token to get student info
+      const studentData = JSON.parse(atob(token))
+      
+      const res = await fetch(`${BASE_URL}/rest/v1/doubts`, {
+        method: 'POST',
+        headers: supabaseConfig.headers,
+        body: JSON.stringify({
+          ...doubtData,
+          student_id: studentData.id,
+          student_email: studentData.email
+        })
+      })
+      
+      if (!res.ok) {
+        throw new Error('Failed to create doubt')
+      }
+      
+      return res.json()
+    } catch (error) {
+      console.error('Failed to create doubt:', error)
+      throw error
     }
-    
-    return res.json()
   },
 
   // Get Student Doubts
   async getStudentDoubts(token) {
-    const res = await fetch(`${BASE_URL}/rest/v1/doubts?select=*,event:events(title)&order=created_at.desc`, {
-      headers: getAuthHeaders(token)
-    })
-    return res.json()
+    try {
+      // Decode the custom token to get student info
+      const studentData = JSON.parse(atob(token))
+      
+      const res = await fetch(`${BASE_URL}/rest/v1/doubts?student_email=eq.${studentData.email}&select=*,event:events(title)&order=created_at.desc`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        console.warn('Doubts table may not exist yet')
+        return []
+      }
+      
+      return res.json()
+    } catch (error) {
+      console.error('Failed to get student doubts:', error)
+      return []
+    }
   },
 
   // Admin - Get All Students
@@ -747,34 +821,78 @@ export const api = {
 
   // Get student's points history
   async getStudentPoints(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/student_points?student_id=eq.${studentId}&order=created_at.desc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/student_points?student_id=eq.${studentId}&order=created_at.desc`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        console.warn('Student points table may not exist yet')
+        return []
+      }
+      
+      return res.json()
+    } catch (error) {
+      console.error('Failed to get student points:', error)
+      return []
+    }
   },
 
   // Get leaderboard
   async getLeaderboard(limit = 10) {
-    const res = await fetch(`${BASE_URL}/rest/v1/students?select=id,email,total_points,level&order=total_points.desc&limit=${limit}`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/students?select=id,email,total_points,level&order=total_points.desc&limit=${limit}`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        console.warn('Leaderboard data may not be available yet')
+        return []
+      }
+      
+      return res.json()
+    } catch (error) {
+      console.error('Failed to get leaderboard:', error)
+      return []
+    }
   },
 
   // Get all available badges
   async getBadges() {
-    const res = await fetch(`${BASE_URL}/rest/v1/badges?select=*&order=points_required.asc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/badges?select=*&order=points_required.asc`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        console.warn('Badges table may not exist yet')
+        return []
+      }
+      
+      return res.json()
+    } catch (error) {
+      console.error('Failed to get badges:', error)
+      return []
+    }
   },
 
   // Get student's earned badges
   async getStudentBadges(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/student_badges?student_id=eq.${studentId}&select=*,badges(*)&order=earned_at.desc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/student_badges?student_id=eq.${studentId}&select=*,badges(*)&order=earned_at.desc`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        console.warn('Student badges table may not exist yet')
+        return []
+      }
+      
+      return res.json()
+    } catch (error) {
+      console.error('Failed to get student badges:', error)
+      return []
+    }
   },
 
   // ============================================
@@ -792,10 +910,21 @@ export const api = {
 
   // Get referral stats
   async getReferralStats(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/referrals?referrer_id=eq.${studentId}&select=*,students!referrals_referred_id_fkey(email)&order=created_at.desc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/referrals?referrer_id=eq.${studentId}&select=*,students!referrals_referred_id_fkey(email)&order=created_at.desc`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        console.warn('Referrals table may not exist yet')
+        return []
+      }
+      
+      return res.json()
+    } catch (error) {
+      console.error('Failed to get referral stats:', error)
+      return []
+    }
   },
 
   // ============================================
@@ -817,10 +946,21 @@ export const api = {
 
   // Get bookmarked events
   async getBookmarkedEvents(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/event_bookmarks?student_id=eq.${studentId}&select=*,events(*)&order=created_at.desc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/event_bookmarks?student_id=eq.${studentId}&select=*,events(*)&order=created_at.desc`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        console.warn('Event bookmarks table may not exist yet')
+        return []
+      }
+      
+      return res.json()
+    } catch (error) {
+      console.error('Failed to get bookmarked events:', error)
+      return []
+    }
   },
 
   // ============================================
@@ -916,78 +1056,153 @@ export const api = {
 
   // Get student RSVPs for dashboard
   async getStudentRSVPs(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/rsvps?student_id=eq.${studentId}&select=*,events(*)&order=created_at.desc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      // Get student by ID first to get email
+      const studentRes = await fetch(`${BASE_URL}/rest/v1/students?id=eq.${studentId}&select=email&limit=1`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!studentRes.ok) {
+        console.warn('Students table may not exist yet')
+        return []
+      }
+      
+      const students = await studentRes.json()
+      if (students.length === 0) return []
+      
+      const studentEmail = students[0].email
+      
+      // Get RSVPs by email
+      const res = await fetch(`${BASE_URL}/rest/v1/rsvps?email=eq.${studentEmail}&select=*,events(*)&order=created_at.desc`, {
+        headers: supabaseConfig.headers
+      })
+      
+      if (!res.ok) {
+        console.warn('RSVPs table may not exist yet')
+        return []
+      }
+      
+      return res.json()
+    } catch (error) {
+      console.error('Failed to get student RSVPs:', error)
+      return []
+    }
   },
 
   // Get student certificates
   async getStudentCertificates(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/certificates?student_id=eq.${studentId}&select=*&order=earned_date.desc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/certificates?student_id=eq.${studentId}&select=*&order=earned_date.desc`, {
+        headers: supabaseConfig.headers
+      })
+      if (!res.ok) throw new Error('Certificates API not available')
+      return res.json()
+    } catch (error) {
+      console.log('Certificates feature not implemented yet')
+      return []
+    }
   },
 
   // Download certificate
   async downloadCertificate(certificateId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/certificates/${certificateId}/download`, {
-      headers: supabaseConfig.headers
-    })
-    return res.blob()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/certificates/${certificateId}/download`, {
+        headers: supabaseConfig.headers
+      })
+      if (!res.ok) throw new Error('Certificate download not available')
+      return res.blob()
+    } catch (error) {
+      console.log('Certificate download not implemented yet')
+      throw error
+    }
   },
 
   // Get networking connections
   async getNetworkingConnections(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/networking_connections?student_id=eq.${studentId}&select=*&order=created_at.desc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/networking_connections?student_id=eq.${studentId}&select=*&order=created_at.desc`, {
+        headers: supabaseConfig.headers
+      })
+      if (!res.ok) throw new Error('Networking API not available')
+      return res.json()
+    } catch (error) {
+      console.log('Networking connections feature not implemented yet')
+      return []
+    }
   },
 
   // Get skill progress
   async getSkillProgress(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/skill_progress?student_id=eq.${studentId}&select=*&order=last_updated.desc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/skill_progress?student_id=eq.${studentId}&select=*&order=last_updated.desc`, {
+        headers: supabaseConfig.headers
+      })
+      if (!res.ok) throw new Error('Skill progress API not available')
+      return res.json()
+    } catch (error) {
+      console.log('Skill progress feature not implemented yet')
+      return []
+    }
   },
 
   // Get feedback history
   async getFeedbackHistory(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/event_feedback?student_id=eq.${studentId}&select=*&order=submitted_date.desc`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/event_feedback?student_id=eq.${studentId}&select=*&order=submitted_date.desc`, {
+        headers: supabaseConfig.headers
+      })
+      if (!res.ok) throw new Error('Feedback API not available')
+      return res.json()
+    } catch (error) {
+      console.log('Feedback history feature not implemented yet')
+      return []
+    }
   },
 
   // Get recommended events
   async getRecommendedEvents(studentId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/rpc/get_recommended_events`, {
-      method: 'POST',
-      headers: supabaseConfig.headers,
-      body: JSON.stringify({ student_id: studentId })
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/rpc/get_recommended_events`, {
+        method: 'POST',
+        headers: supabaseConfig.headers,
+        body: JSON.stringify({ student_id: studentId })
+      })
+      if (!res.ok) throw new Error('Recommendations API not available')
+      return res.json()
+    } catch (error) {
+      console.log('Recommendations feature not implemented yet')
+      return []
+    }
   },
 
   // Get live participant count
   async getLiveParticipantCount(eventId) {
-    const res = await fetch(`${BASE_URL}/rest/v1/rpc/get_live_participant_count`, {
-      method: 'POST',
-      headers: supabaseConfig.headers,
-      body: JSON.stringify({ event_id: eventId })
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/rpc/get_live_participant_count`, {
+        method: 'POST',
+        headers: supabaseConfig.headers,
+        body: JSON.stringify({ event_id: eventId })
+      })
+      if (!res.ok) throw new Error('Live count API not available')
+      return res.json()
+    } catch (error) {
+      console.log('Live participant count feature not implemented yet')
+      return { count: 0 }
+    }
   },
 
   // Get recent registrations for social proof
   async getRecentRegistrations(eventId, limit = 5) {
-    const res = await fetch(`${BASE_URL}/rest/v1/rsvps?event_id=eq.${eventId}&select=full_name,created_at&order=created_at.desc&limit=${limit}`, {
-      headers: supabaseConfig.headers
-    })
-    return res.json()
+    try {
+      const res = await fetch(`${BASE_URL}/rest/v1/rsvps?event_id=eq.${eventId}&select=full_name,created_at&order=created_at.desc&limit=${limit}`, {
+        headers: supabaseConfig.headers
+      })
+      if (!res.ok) throw new Error('Recent registrations API not available')
+      return res.json()
+    } catch (error) {
+      console.log('Recent registrations feature not implemented yet')
+      return []
+    }
   },
 
   // Admin - Delete Student

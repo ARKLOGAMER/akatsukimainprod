@@ -11,6 +11,7 @@ import EventLandingPage from './pages/EventLandingPage'
 import StudentLogin from './pages/StudentLogin'
 import EnhancedStudentDashboard from './pages/EnhancedStudentDashboard'
 import AuthCallback from './pages/AuthCallback'
+import TestPage from './pages/TestPage'
 // DISABLED FOR LOCAL TESTING - Uncomment for production
 // import TermsAndConditions from './pages/TermsAndConditions'
 // import PrivacyPolicy from './pages/PrivacyPolicy'
@@ -20,8 +21,14 @@ import AuthCallback from './pages/AuthCallback'
 function App() {
   return (
     <HelmetProvider>
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true
+        }}
+      >
         <Analytics />
+        <AnalyticsDebug />
         <Routes>
           <Route path="/" element={<PublicPage />} />
           <Route path="/event/:slug" element={<EventLandingPage />} />
@@ -32,6 +39,7 @@ function App() {
           <Route path="/student/login" element={<StudentLogin />} />
           <Route path="/student/auth/callback" element={<AuthCallback />} />
           <Route path="/student/dashboard" element={<EnhancedStudentDashboard />} />
+          <Route path="/test" element={<TestPage />} />
           {/* DISABLED FOR LOCAL TESTING - Uncomment for production
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
