@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import SEO from '../components/SEO'
+import TechSupport from '../components/TechSupport'
 import { api } from '../services/api'
 
 function EventLandingPage() {
@@ -8,6 +9,17 @@ function EventLandingPage() {
   const navigate = useNavigate()
   const [event, setEvent] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [liveParticipants, setLiveParticipants] = useState(0)
+  const [recentRegistrations, setRecentRegistrations] = useState([])
+  const [showTechSupport, setShowTechSupport] = useState(false)
+  const [userTimezone, setUserTimezone] = useState('')
+  const [eventTimeInUserTZ, setEventTimeInUserTZ] = useState('')
+  const [prerequisitesChecked, setPrerequisitesChecked] = useState(false)
+  const [skillAssessment, setSkillAssessment] = useState({
+    level: '',
+    experience: '',
+    tools: []
+  })
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -15,7 +27,10 @@ function EventLandingPage() {
     age: '',
     college: '',
     department: '',
-    reason: ''
+    reason: '',
+    skill_level: 'beginner',
+    learning_objectives: [],
+    communication_preference: 'email'
   })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -23,10 +38,22 @@ function EventLandingPage() {
   const [appliedPromo, setAppliedPromo] = useState(null)
   const [promoError, setPromoError] = useState('')
   const [applyingPromo, setApplyingPromo] = useState(false)
+  const [currentStep, setCurrentStep] = useState(1)
 
   useEffect(() => {
     loadEvent()
+    detectUserTimezone()
+    loadLiveData()
+    
+    // Update live data every 30 seconds
+    const interval = setInterval(loadLiveData, 30000)
+    return () => clearInterval(interval)
   }, [slug])
+
+  const detectUserTimezone = () => {
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    setUserTimezone(timezone)
+  }
 
   const loadEvent = async () => {
     try {
@@ -36,11 +63,36 @@ function EventLandingPage() {
         return
       }
       setEvent(data)
-    } catch (err) {
-      console.error('Failed to load event:', err)
+      
+      // Convert event time to user's timezone
+      if (data.start_date && data.start_time) {
+        const eventDateTime = new Date(`${data.start_date}T${data.start_time}`)
+        const userTime = eventDateTime.toLocaleString('en-US', {
+          timeZone: userTimezone,
+          dateStyle: 'full',
+          timeStyle: 'short'
+        })
+        setEventTimeInUserTZ(userTime)
+      }
+    } catch (error) {
+      console.error('Failed to load event:', error)
       navigate('/')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadLiveData = async () => {
+    try {
+      const [participantsData, recentData] = await Promise.all([
+        api.getLiveParticipantCount(event?.id),
+        api.getRecentRegistrations(event?.id, 5)
+      ])
+      
+      setLiveParticipants(participantsData.count || 0)
+      setRecentRegistrations(recentData || [])
+    } catch (error) {
+      console.error('Failed to load live data:', error)
     }
   }
 

@@ -922,6 +922,74 @@ export const api = {
     return res.json()
   },
 
+  // Get student certificates
+  async getStudentCertificates(studentId) {
+    const res = await fetch(`${BASE_URL}/rest/v1/certificates?student_id=eq.${studentId}&select=*&order=earned_date.desc`, {
+      headers: supabaseConfig.headers
+    })
+    return res.json()
+  },
+
+  // Download certificate
+  async downloadCertificate(certificateId) {
+    const res = await fetch(`${BASE_URL}/rest/v1/certificates/${certificateId}/download`, {
+      headers: supabaseConfig.headers
+    })
+    return res.blob()
+  },
+
+  // Get networking connections
+  async getNetworkingConnections(studentId) {
+    const res = await fetch(`${BASE_URL}/rest/v1/networking_connections?student_id=eq.${studentId}&select=*&order=created_at.desc`, {
+      headers: supabaseConfig.headers
+    })
+    return res.json()
+  },
+
+  // Get skill progress
+  async getSkillProgress(studentId) {
+    const res = await fetch(`${BASE_URL}/rest/v1/skill_progress?student_id=eq.${studentId}&select=*&order=last_updated.desc`, {
+      headers: supabaseConfig.headers
+    })
+    return res.json()
+  },
+
+  // Get feedback history
+  async getFeedbackHistory(studentId) {
+    const res = await fetch(`${BASE_URL}/rest/v1/event_feedback?student_id=eq.${studentId}&select=*&order=submitted_date.desc`, {
+      headers: supabaseConfig.headers
+    })
+    return res.json()
+  },
+
+  // Get recommended events
+  async getRecommendedEvents(studentId) {
+    const res = await fetch(`${BASE_URL}/rest/v1/rpc/get_recommended_events`, {
+      method: 'POST',
+      headers: supabaseConfig.headers,
+      body: JSON.stringify({ student_id: studentId })
+    })
+    return res.json()
+  },
+
+  // Get live participant count
+  async getLiveParticipantCount(eventId) {
+    const res = await fetch(`${BASE_URL}/rest/v1/rpc/get_live_participant_count`, {
+      method: 'POST',
+      headers: supabaseConfig.headers,
+      body: JSON.stringify({ event_id: eventId })
+    })
+    return res.json()
+  },
+
+  // Get recent registrations for social proof
+  async getRecentRegistrations(eventId, limit = 5) {
+    const res = await fetch(`${BASE_URL}/rest/v1/rsvps?event_id=eq.${eventId}&select=full_name,created_at&order=created_at.desc&limit=${limit}`, {
+      headers: supabaseConfig.headers
+    })
+    return res.json()
+  },
+
   // Admin - Delete Student
   async deleteStudent(studentId, token) {
     const res = await fetch(`${BASE_URL}/rest/v1/students?id=eq.${studentId}`, {

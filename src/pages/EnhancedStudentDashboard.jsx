@@ -13,6 +13,11 @@ function EnhancedStudentDashboard() {
   const [referralStats, setReferralStats] = useState([])
   const [bookmarkedEvents, setBookmarkedEvents] = useState([])
   const [eventHistory, setEventHistory] = useState([])
+  const [certificates, setCertificates] = useState([])
+  const [networkingConnections, setNetworkingConnections] = useState([])
+  const [skillProgress, setSkillProgress] = useState([])
+  const [feedbackHistory, setFeedbackHistory] = useState([])
+  const [recommendedEvents, setRecommendedEvents] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -56,6 +61,26 @@ function EnhancedStudentDashboard() {
       const historyData = await api.getStudentRSVPs(profile.id)
       setEventHistory(historyData)
 
+      // Load certificates
+      const certificatesData = await api.getStudentCertificates(profile.id)
+      setCertificates(certificatesData)
+
+      // Load networking connections
+      const connectionsData = await api.getNetworkingConnections(profile.id)
+      setNetworkingConnections(connectionsData)
+
+      // Load skill progress
+      const progressData = await api.getSkillProgress(profile.id)
+      setSkillProgress(progressData)
+
+      // Load feedback history
+      const feedbackData = await api.getFeedbackHistory(profile.id)
+      setFeedbackHistory(feedbackData)
+
+      // Load recommended events
+      const recommendationsData = await api.getRecommendedEvents(profile.id)
+      setRecommendedEvents(recommendationsData)
+
       setLoading(false)
     } catch (err) {
       console.error('Failed to load dashboard:', err)
@@ -82,6 +107,21 @@ function EnhancedStudentDashboard() {
     } else {
       navigator.clipboard.writeText(`${text}\n${url}`)
       alert('✅ Referral link copied!')
+    }
+  }
+
+  const downloadCertificate = async (certificateId) => {
+    try {
+      const blob = await api.downloadCertificate(certificateId)
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `certificate-${certificateId}.pdf`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to download certificate:', error)
+      alert('Failed to download certificate')
     }
   }
 
@@ -146,8 +186,35 @@ function EnhancedStudentDashboard() {
 
           <div className="bg-gradient-to-br from-orange-600 to-orange-800 rounded-xl p-6">
             <div className="text-3xl mb-2">👥</div>
-            <div className="text-2xl font-bold">{referralStats.filter(r => r.status === 'completed').length}</div>
-            <div className="text-sm text-orange-200">Successful Referrals</div>
+            <div className="text-2xl font-bold">{networkingConnections.length}</div>
+            <div className="text-sm text-orange-200">Connections Made</div>
+          </div>
+        </div>
+
+        {/* Additional Stats Row */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-gradient-to-br from-yellow-600 to-yellow-800 rounded-xl p-6">
+            <div className="text-3xl mb-2">📜</div>
+            <div className="text-2xl font-bold">{certificates.length}</div>
+            <div className="text-sm text-yellow-200">Certificates Earned</div>
+          </div>
+
+          <div className="bg-gradient-to-br from-pink-600 to-pink-800 rounded-xl p-6">
+            <div className="text-3xl mb-2">📈</div>
+            <div className="text-2xl font-bold">{skillProgress.length}</div>
+            <div className="text-sm text-pink-200">Skills Tracked</div>
+          </div>
+
+          <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-xl p-6">
+            <div className="text-3xl mb-2">💬</div>
+            <div className="text-2xl font-bold">{feedbackHistory.length}</div>
+            <div className="text-sm text-indigo-200">Feedback Given</div>
+          </div>
+
+          <div className="bg-gradient-to-br from-teal-600 to-teal-800 rounded-xl p-6">
+            <div className="text-3xl mb-2">✨</div>
+            <div className="text-2xl font-bold">{recommendedEvents.length}</div>
+            <div className="text-sm text-teal-200">Recommendations</div>
           </div>
         </div>
 
@@ -157,8 +224,13 @@ function EnhancedStudentDashboard() {
             {[
               { id: 'overview', label: 'Overview', icon: '📊' },
               { id: 'events', label: 'My Events', icon: '🎫' },
+              { id: 'certificates', label: 'Certificates', icon: '📜' },
+              { id: 'networking', label: 'Connections', icon: '🤝' },
+              { id: 'skills', label: 'Skill Progress', icon: '📈' },
+              { id: 'feedback', label: 'Feedback', icon: '💬' },
+              { id: 'recommendations', label: 'Recommended', icon: '✨' },
               { id: 'badges', label: 'Achievements', icon: '🏅' },
-              { id: 'referrals', label: 'Referrals', icon: '🤝' },
+              { id: 'referrals', label: 'Referrals', icon: '👥' },
               { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' }
             ].map(tab => (
               <button
@@ -294,6 +366,202 @@ function EnhancedStudentDashboard() {
                     ))}
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Certificates Tab */}
+            {activeTab === 'certificates' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold mb-4">Your Certificates 📜</h2>
+                {certificates.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">📜</div>
+                    <p className="text-gray-400 text-lg">No certificates earned yet</p>
+                    <p className="text-gray-500">Complete events to earn certificates</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {certificates.map(cert => (
+                      <div key={cert.id} className="bg-gradient-to-br from-yellow-600 to-yellow-700 p-6 rounded-xl text-white">
+                        <div className="text-4xl mb-4">🏆</div>
+                        <h3 className="text-lg font-bold mb-2">{cert.event_title}</h3>
+                        <p className="text-yellow-200 text-sm mb-4">
+                          Earned on {new Date(cert.earned_date).toLocaleDateString()}
+                        </p>
+                        <button
+                          onClick={() => downloadCertificate(cert.id)}
+                          className="w-full bg-white text-yellow-700 py-2 rounded-lg font-semibold hover:bg-yellow-100 transition-colors"
+                        >
+                          📥 Download Certificate
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Networking Connections Tab */}
+            {activeTab === 'networking' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold mb-4">Your Network 🤝</h2>
+                {networkingConnections.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">🤝</div>
+                    <p className="text-gray-400 text-lg">No connections yet</p>
+                    <p className="text-gray-500">Attend events to meet like-minded people</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {networkingConnections.map(connection => (
+                      <div key={connection.id} className="bg-gray-800/50 rounded-xl p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                            {connection.name.charAt(0)}
+                          </div>
+                          <div>
+                            <h3 className="text-white font-semibold">{connection.name}</h3>
+                            <p className="text-gray-400 text-sm">{connection.college}</p>
+                          </div>
+                        </div>
+                        <p className="text-gray-300 text-sm mb-3">{connection.bio}</p>
+                        <div className="flex gap-2">
+                          <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs">
+                            {connection.skill_area}
+                          </span>
+                          <span className="bg-gray-700 text-gray-300 px-2 py-1 rounded text-xs">
+                            Met at {connection.event_name}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Skill Progress Tab */}
+            {activeTab === 'skills' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold mb-4">Skill Progress 📈</h2>
+                {skillProgress.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">📈</div>
+                    <p className="text-gray-400 text-lg">No skill progress tracked yet</p>
+                    <p className="text-gray-500">Complete assessments to track your growth</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {skillProgress.map(skill => (
+                      <div key={skill.id} className="bg-gray-800/50 p-6 rounded-xl">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-bold text-white">{skill.skill_name}</h3>
+                          <span className="text-2xl font-bold text-akatsuki-red">
+                            {skill.current_level}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-3 mb-4">
+                          <div 
+                            className="bg-gradient-to-r from-akatsuki-red to-red-400 h-3 rounded-full transition-all duration-500"
+                            style={{ width: `${skill.current_level}%` }}
+                          ></div>
+                        </div>
+                        <div className="flex justify-between text-sm text-gray-400">
+                          <span>Started: {new Date(skill.started_date).toLocaleDateString()}</span>
+                          <span>Last updated: {new Date(skill.last_updated).toLocaleDateString()}</span>
+                        </div>
+                        <div className="mt-4 flex gap-2">
+                          {skill.achievements?.map(achievement => (
+                            <span key={achievement} className="bg-yellow-600 text-white px-2 py-1 rounded text-xs">
+                              🏅 {achievement}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Feedback History Tab */}
+            {activeTab === 'feedback' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold mb-4">Event Feedback History 💬</h2>
+                {feedbackHistory.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">💬</div>
+                    <p className="text-gray-400 text-lg">No feedback submitted yet</p>
+                    <p className="text-gray-500">Help us improve by sharing your thoughts</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {feedbackHistory.map(feedback => (
+                      <div key={feedback.id} className="bg-gray-800/50 p-6 rounded-xl">
+                        <div className="flex justify-between items-start mb-4">
+                          <h3 className="text-lg font-bold text-white">{feedback.event_title}</h3>
+                          <div className="flex items-center gap-1">
+                            {[...Array(5)].map((_, i) => (
+                              <span key={i} className={`text-lg ${i < feedback.rating ? 'text-yellow-400' : 'text-gray-600'}`}>
+                                ⭐
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-gray-300 mb-3">{feedback.comment}</p>
+                        <div className="text-sm text-gray-400">
+                          Submitted on {new Date(feedback.submitted_date).toLocaleDateString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Recommendations Tab */}
+            {activeTab === 'recommendations' && (
+              <div className="space-y-6">
+                <h2 className="text-2xl font-bold mb-4">Recommended for You ✨</h2>
+                {recommendedEvents.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-4">✨</div>
+                    <p className="text-gray-400 text-lg">No recommendations available</p>
+                    <p className="text-gray-500">Attend more events to get personalized recommendations</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-6">
+                    {recommendedEvents.map(event => (
+                      <div key={event.id} className="bg-gradient-to-r from-purple-800 to-pink-800 p-6 rounded-xl">
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h3 className="text-xl font-bold text-white mb-2">{event.title}</h3>
+                            <p className="text-purple-200">{event.description}</p>
+                          </div>
+                          <span className="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold">
+                            {event.match_score}% Match
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <div className="flex gap-2">
+                            <span className="bg-purple-700 text-white px-3 py-1 rounded-full text-sm">
+                              {event.category}
+                            </span>
+                            <span className="bg-purple-700 text-white px-3 py-1 rounded-full text-sm">
+                              🌐 Online
+                            </span>
+                          </div>
+                          <button 
+                            onClick={() => navigate(`/event/${event.slug}`)}
+                            className="bg-white text-purple-800 px-6 py-2 rounded-lg font-semibold hover:bg-purple-100 transition-colors"
+                          >
+                            View Event
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
